@@ -1,4 +1,51 @@
+'use client';
+
+import { useState } from 'react';
+
 export default function Home() {
+  const [formData, setFormData] = useState({
+    name: '',
+    email: '',
+    message: '',
+  });
+  const [status, setStatus] = useState<'idle' | 'loading' | 'success' | 'error'>('idle');
+  const [errorMessage, setErrorMessage] = useState('');
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setStatus('loading');
+    setErrorMessage('');
+
+    try {
+      const response = await fetch('/api/contact', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(formData),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.error || 'メール送信に失敗しました');
+      }
+
+      setStatus('success');
+      setFormData({ name: '', email: '', message: '' });
+    } catch (error) {
+      setStatus('error');
+      setErrorMessage(error instanceof Error ? error.message : 'エラーが発生しました');
+    }
+  };
+
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
+    setFormData({
+      ...formData,
+      [e.target.name]: e.target.value,
+    });
+  };
+
   return (
     <div className="min-h-screen">
       {/* ヒーローセクション */}
@@ -143,7 +190,22 @@ export default function Home() {
           <p className="text-center text-indigo-100 mb-10">
             まずはお気軽にご相談ください。お客様の環境やご要望をヒアリングし、最適なプランをご提案いたします。
           </p>
-          <form className="bg-white p-8 rounded-lg shadow-xl">
+          
+          {status === 'success' && (
+            <div className="bg-green-100 border border-green-400 text-green-700 px-6 py-4 rounded-lg mb-6">
+              <p className="font-semibold">送信完了！</p>
+              <p>お問い合わせありがとうございます。24時間以内にご返信いたします。</p>
+            </div>
+          )}
+
+          {status === 'error' && (
+            <div className="bg-red-100 border border-red-400 text-red-700 px-6 py-4 rounded-lg mb-6">
+              <p className="font-semibold">エラーが発生しました</p>
+              <p>{errorMessage}</p>
+            </div>
+          )}
+
+          <form onSubmit={handleSubmit} className="bg-white p-8 rounded-lg shadow-xl">
             <div className="mb-6">
               <label htmlFor="name" className="block text-gray-700 font-semibold mb-2">
                 お名前
@@ -152,8 +214,11 @@ export default function Home() {
                 type="text"
                 id="name"
                 name="name"
+                value={formData.name}
+                onChange={handleChange}
                 className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
                 required
+                disabled={status === 'loading'}
               />
             </div>
             <div className="mb-6">
@@ -164,8 +229,11 @@ export default function Home() {
                 type="email"
                 id="email"
                 name="email"
+                value={formData.email}
+                onChange={handleChange}
                 className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
                 required
+                disabled={status === 'loading'}
               />
             </div>
             <div className="mb-6">
@@ -176,15 +244,19 @@ export default function Home() {
                 id="message"
                 name="message"
                 rows={5}
+                value={formData.message}
+                onChange={handleChange}
                 className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
                 required
+                disabled={status === 'loading'}
               ></textarea>
             </div>
             <button
               type="submit"
-              className="w-full bg-indigo-600 text-white px-6 py-4 rounded-lg text-lg font-semibold hover:bg-indigo-700 transition"
+              disabled={status === 'loading'}
+              className="w-full bg-indigo-600 text-white px-6 py-4 rounded-lg text-lg font-semibold hover:bg-indigo-700 transition disabled:opacity-50 disabled:cursor-not-allowed"
             >
-              送信する
+              {status === 'loading' ? '送信中...' : '送信する'}
             </button>
           </form>
         </div>
